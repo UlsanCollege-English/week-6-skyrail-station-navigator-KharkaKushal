@@ -1,170 +1,203 @@
-"""Public tests for Weekly Coding #5."""
+"""Starter tests for Week 9 Homework.
 
-from __future__ import annotations
+Run with:
 
-from src.challenges import (
-    TreeNode,
-    bst_contains,
-    bst_insert,
-    inorder_values,
-    postorder_values,
-    preorder_values,
-)
+    pytest -q
 
+These tests are a starter set. You must add at least one meaningful test of
+your own before submitting.
+"""
 
-
-def build_station_map_tree() -> TreeNode:
-    """Build the sample Skyrail station map tree used in traversal tests."""
-    return TreeNode(
-        "Central",
-        TreeNode("North Line", TreeNode("Maple"), TreeNode("Elm")),
-        TreeNode("South Line", None, TreeNode("Harbor")),
-    )
+from src.challenges import analyze_lanterns
+from src.challenges import preorder_values, inorder_values, postorder_values
+from src.challenges import bst_contains, bst_insert, TreeNode
 
 
+def test_analyze_lanterns_full_starter_data():
+    expected_lanterns = {
+        "river-dragon",
+        "blue-crane",
+        "moon-rabbit",
+        "gold-tiger",
+        "white-lotus",
+        "red-kite",
+    }
 
-def build_single_station_tree() -> TreeNode:
-    """Build a one-node tree for traversal edge-case tests."""
-    return TreeNode("Central")
-
-
-
-def build_station_bst() -> TreeNode:
-    """Build the sample BST used in search and insert tests."""
-    return TreeNode(
-        40,
-        TreeNode(20, TreeNode(10), TreeNode(30)),
-        TreeNode(60, TreeNode(50), TreeNode(70)),
-    )
-
-
-
-def test_preorder_values_returns_expected_order_for_sample_tree() -> None:
-    root = build_station_map_tree()
-    assert preorder_values(root) == [
-        "Central",
-        "North Line",
-        "Maple",
-        "Elm",
-        "South Line",
-        "Harbor",
+    lantern_log = [
+        ("river-dragon", "North Gate"),
+        ("blue-crane", "River Walk"),
+        ("moon-rabbit", "River Walk"),
+        ("river-dragon", "North Gate"),
+        ("gold-tiger", "Market Street"),
+        ("silver-fox", "Market Street"),
+        ("red-kite", "South Bridge"),
     ]
 
+    correct_sections = {
+        "river-dragon": "North Gate",
+        "blue-crane": "River Walk",
+        "moon-rabbit": "River Walk",
+        "gold-tiger": "Market Street",
+        "white-lotus": "Temple Road",
+        "red-kite": "Temple Road",
+    }
+
+    result = analyze_lanterns(expected_lanterns, lantern_log, correct_sections)
+
+    assert result["seen_lanterns"] == {
+        "river-dragon",
+        "blue-crane",
+        "moon-rabbit",
+        "gold-tiger",
+        "silver-fox",
+        "red-kite",
+    }
+    assert result["missing_lanterns"] == {"white-lotus"}
+    assert result["unexpected_lanterns"] == {"silver-fox"}
+    assert result["duplicate_lanterns"] == {"river-dragon"}
+    assert result["count_by_section"] == {
+        "North Gate": 2,
+        "River Walk": 2,
+        "Market Street": 2,
+        "South Bridge": 1,
+    }
+    assert result["wrong_section_lanterns"] == {
+        "red-kite": {
+            "expected": "Temple Road",
+            "actual": "South Bridge",
+        }
+    }
 
 
-def test_inorder_values_returns_expected_order_for_sample_tree() -> None:
-    root = build_station_map_tree()
-    assert inorder_values(root) == [
-        "Maple",
-        "North Line",
-        "Elm",
-        "Central",
-        "South Line",
-        "Harbor",
+def test_analyze_lanterns_empty_input():
+    result = analyze_lanterns(set(), [], {})
+
+    assert result["seen_lanterns"] == set()
+    assert result["missing_lanterns"] == set()
+    assert result["unexpected_lanterns"] == set()
+    assert result["duplicate_lanterns"] == set()
+    assert result["count_by_section"] == {}
+    assert result["wrong_section_lanterns"] == {}
+
+
+def test_analyze_lanterns_detects_duplicate_lanterns():
+    expected_lanterns = {"moon-rabbit"}
+    lantern_log = [
+        ("moon-rabbit", "River Walk"),
+        ("moon-rabbit", "River Walk"),
     ]
+    correct_sections = {"moon-rabbit": "River Walk"}
+
+    result = analyze_lanterns(expected_lanterns, lantern_log, correct_sections)
+
+    assert result["duplicate_lanterns"] == {"moon-rabbit"}
 
 
-
-def test_postorder_values_returns_expected_order_for_sample_tree() -> None:
-    root = build_station_map_tree()
-    assert postorder_values(root) == [
-        "Maple",
-        "Elm",
-        "North Line",
-        "Harbor",
-        "South Line",
-        "Central",
+def test_analyze_lanterns_detects_wrong_section():
+    expected_lanterns = {"red-kite"}
+    lantern_log = [
+        ("red-kite", "South Bridge"),
     ]
+    correct_sections = {"red-kite": "Temple Road"}
+
+    result = analyze_lanterns(expected_lanterns, lantern_log, correct_sections)
+
+    assert result["wrong_section_lanterns"] == {
+        "red-kite": {
+            "expected": "Temple Road",
+            "actual": "South Bridge",
+        }
+    }
 
 
+def test_analyze_lanterns_ignores_unexpected_lantern_for_wrong_section():
+    expected_lanterns = {"red-kite"}
+    lantern_log = [
+        ("silver-fox", "Market Street"),
+    ]
+    correct_sections = {"red-kite": "Temple Road"}
 
-def test_traversals_return_empty_list_for_empty_tree() -> None:
+    result = analyze_lanterns(expected_lanterns, lantern_log, correct_sections)
+
+    assert result["unexpected_lanterns"] == {"silver-fox"}
+    assert result["wrong_section_lanterns"] == {}
+
+
+def test_tree_traversals():
+    #       1
+    #      / \
+    #     2   3
+    #    / \
+    #   4   5
+    root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+    assert preorder_values(root) == [1, 2, 4, 5, 3]
+    assert inorder_values(root) == [4, 2, 5, 1, 3]
+    assert postorder_values(root) == [4, 5, 2, 3, 1]
+
+
+def test_tree_traversals_empty():
     assert preorder_values(None) == []
     assert inorder_values(None) == []
     assert postorder_values(None) == []
 
 
-
-def test_traversals_work_for_single_node_tree() -> None:
-    root = build_single_station_tree()
-    assert preorder_values(root) == ["Central"]
-    assert inorder_values(root) == ["Central"]
-    assert postorder_values(root) == ["Central"]
-
+def test_tree_traversals_single_node():
+    root = TreeNode(42)
+    assert preorder_values(root) == [42]
+    assert inorder_values(root) == [42]
+    assert postorder_values(root) == [42]
 
 
-def test_traversals_work_for_left_heavy_tree() -> None:
-    root = TreeNode("C", TreeNode("B", TreeNode("A")), None)
-    assert preorder_values(root) == ["C", "B", "A"]
-    assert inorder_values(root) == ["A", "B", "C"]
-    assert postorder_values(root) == ["A", "B", "C"]
+def test_bst_contains():
+    #       40
+    #      /  \
+    #    20    60
+    #   / \   / \
+    # 10  30 50  70
+    bst = TreeNode(
+        40,
+        TreeNode(20, TreeNode(10), TreeNode(30)),
+        TreeNode(60, TreeNode(50), TreeNode(70))
+    )
+    assert bst_contains(bst, 50) is True
+    assert bst_contains(bst, 25) is False
+    assert bst_contains(bst, 40) is True
+    assert bst_contains(bst, 10) is True
+    assert bst_contains(bst, 70) is True
 
 
-
-def test_bst_contains_returns_true_for_existing_values() -> None:
-    root = build_station_bst()
-    assert bst_contains(root, 40) is True
-    assert bst_contains(root, 10) is True
-    assert bst_contains(root, 50) is True
-    assert bst_contains(root, 70) is True
+def test_bst_contains_empty():
+    assert bst_contains(None, 5) is False
 
 
-
-def test_bst_contains_returns_false_for_missing_values() -> None:
-    root = build_station_bst()
-    assert bst_contains(root, 25) is False
-    assert bst_contains(root, 65) is False
-    assert bst_contains(root, 99) is False
-
-
-
-def test_bst_contains_returns_false_for_empty_tree() -> None:
-    assert bst_contains(None, 123) is False
-
-
-
-def test_bst_insert_creates_root_when_tree_is_empty() -> None:
-    root = bst_insert(None, 40)
-    assert root.value == 40
-    assert root.left is None
-    assert root.right is None
+def test_bst_insert():
+    #       40
+    #      /  \
+    #    20    60
+    #   / \   / \
+    # 10  30 50  70
+    bst = TreeNode(
+        40,
+        TreeNode(20, TreeNode(10), TreeNode(30)),
+        TreeNode(60, TreeNode(50), TreeNode(70))
+    )
+    bst = bst_insert(bst, 65)
+    assert bst_contains(bst, 65) is True
+    # Verify 65 is left child of 70
+    assert bst.right.right.left.value == 65
 
 
-
-def test_bst_insert_adds_value_to_left_subtree() -> None:
-    root = build_station_bst()
-    updated = bst_insert(root, 25)
-    assert inorder_values(updated) == [10, 20, 25, 30, 40, 50, 60, 70]
-
-
-
-def test_bst_insert_adds_value_to_right_subtree() -> None:
-    root = build_station_bst()
-    updated = bst_insert(root, 65)
-    assert inorder_values(updated) == [10, 20, 30, 40, 50, 60, 65, 70]
+def test_bst_insert_empty():
+    bst = bst_insert(None, 10)
+    assert bst.value == 10
+    assert bst.left is None
+    assert bst.right is None
 
 
-
-def test_bst_insert_adds_deeper_leaf_in_correct_position() -> None:
-    root = build_station_bst()
-    updated = bst_insert(root, 55)
-    assert inorder_values(updated) == [10, 20, 30, 40, 50, 55, 60, 70]
-    assert bst_contains(updated, 55) is True
-
-
-
-def test_bst_insert_ignores_duplicate_values() -> None:
-    root = build_station_bst()
-    updated = bst_insert(root, 60)
-    assert inorder_values(updated) == [10, 20, 30, 40, 50, 60, 70]
-
-
-
-def test_bst_insert_can_build_a_tree_from_scratch() -> None:
-    root = None
-    for value in [40, 20, 60, 10, 30, 50, 70]:
-        root = bst_insert(root, value)
-
-    assert root is not None
-    assert inorder_values(root) == [10, 20, 30, 40, 50, 60, 70]
-    assert preorder_values(root) == [40, 20, 10, 30, 60, 50, 70]
+def test_bst_insert_duplicate():
+    bst = TreeNode(10)
+    bst = bst_insert(bst, 10)
+    # Should not create duplicate
+    assert bst.value == 10
+    assert bst.left is None
+    assert bst.right is None
